@@ -48,6 +48,7 @@ RUN go mod tidy
 To manage your development environment with Docker Compose, 
 create a docker-compose.yml file in the root of your project:
 
+```
 version: '3.8'
 
 services:
@@ -74,6 +75,7 @@ volumes:
 
 volumes:
 postgres-db:
+```
 
 2. Setting Up Air for Live Reloading
    
@@ -94,7 +96,7 @@ Verify the installation:
 
 2.2. Create Air Configuration File
 Ensure you have an air.toml file in the root of your project with the following configuration:
-
+```
 root = "."
 testdata_dir = "testdata"
 tmp_dir = "tmp"
@@ -146,24 +148,31 @@ proxy_port = 0
 [screen]
 clear_on_rebuild = false
 keep_scroll = true
+```
 
 3. Running the Application
    
 3.1. For Development
 To run the application with live reloading, use Docker Compose:
 
+```
 docker-compose up --build
+```
 
 3.2. For Production
 To build and run the application for production:
 
 Build the production image:
 
+```
 docker build -t auth-service .
+```
 
 Run the container:
 
+```
 docker run -p 8080:8080 auth-service
+```
 
 4. Connecting to PostgreSQL Database
    This section covers how to connect your Go application to a PostgreSQL database using GORM, 
@@ -172,15 +181,17 @@ docker run -p 8080:8080 auth-service
 4.1. Create .env File
 Create a .env file in the root of your project with the following content:
 
+```
 DATABASE_URL=postgres://engineer25:thewordistheword@db:5432/authdb?sslmode=disable
 DB_USER=engineer25
 DB_PASSWORD=thewordistheword
 DB_NAME=authdb
-
+```
 4.2. Update Go Application to Use GORM
 Ensure that your Go application uses GORM to connect to the PostgreSQL database. 
 Here's an example of how to initialize GORM in your Go application:
 
+```
 database/database.go
 
 package database
@@ -227,11 +238,14 @@ Logger: logger.Default.LogMode(logger.Info),
 
 	DB = Dbinstance{Db: db}
 }
+```
 
 Update your main.go to initialize the database:
 
+```
 cmd/auth-service/main.go
-
+```
+```
 package main
 
 import (
@@ -249,6 +263,8 @@ app := fiber.New()
 
     log.Fatal(app.Listen(":8080"))
 }
+
+```
 
 Contribution
 Feel free to open issues or submit pull requests if you have any suggestions or improvements!
