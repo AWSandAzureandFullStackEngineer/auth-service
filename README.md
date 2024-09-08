@@ -1,4 +1,4 @@
-***auth-service***
+# auth-service
 
 Overview
 
@@ -29,20 +29,18 @@ Go (for local development and testing)
 In the root of your project directory, 
 create a Dockerfile with the following content:
 
-# Use the official Golang image as a parent image
+```
 FROM golang:1.23-alpine
 
-# Set the Current Working Directory inside the container
 WORKDIR /usr/src/app
 
-# Install Air for live reloading
 RUN go install github.com/air-verse/air@latest
 
-# Copy the application code into the container
+
 COPY . .
 
-# Ensure Go modules are tidy
 RUN go mod tidy
+```
 
 1.2. Create a Docker Compose File
 To manage your development environment with Docker Compose, 
