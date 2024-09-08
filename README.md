@@ -85,10 +85,13 @@ go install github.com/air-verse/air@latest
 Alternatively, install it via script:
 
 # Install Air to the default GOPATH bin directory
+```
 curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-
+```
 # Or install it into ./bin/
+```
 curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s
+```
 
 Verify the installation:
 
