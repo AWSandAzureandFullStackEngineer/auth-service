@@ -1,150 +1,254 @@
-# auth-service
+***auth-service***
 
-**Acceptance Criteria:**
-- The Go module is initialized with the name `auth-service`.
-- The basic project structure is in place.
-- The `cmd/main.go` file runs and prints "Hello World" to the console.
-- `.gitignore` and `README.md` files are created and contain appropriate content.
+Overview
 
-**Additional Information:**
-- Ensure that the project adheres to Go's best practices for project structure.
-- Document any setup or configuration steps clearly in the README.md file.
+This repository contains a Go application named auth-service using the Fiber web framework. 
+This guide will walk you through:
 
-# auth-service
+Containerizing the Go application with Docker
 
-## Overview
+Setting up Air for live reloading during development
 
-This repository contains a Go application called `auth-service`. This guide will walk you through containerizing the application using Docker, setting up Air for live reloading, and configuring everything with Docker Compose.
+Configuring Docker Compose to manage both the application and a PostgreSQL database
+Connecting the application to the PostgreSQL database
 
-## Getting Started
+Getting Started
 
-### Prerequisites
+Prerequisites
 
 Before you begin, ensure you have the following installed on your machine:
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
-- [Go](https://golang.org/doc/install) (for local development and testing)
+Docker
 
-### 1. Containerizing the Go Application
+Docker Compose
 
-To containerize the `auth-service` application, follow these steps:
-
-#### 1.1. Create a Dockerfile for Production
-
-In the root of your project directory, create a file named `Dockerfile` with the following content:
-
-```Dockerfile
-# Use the official Golang image as a parent image
-FROM golang:1.20 AS builder
-
-# Set the Current Working Directory inside the container
-WORKDIR /app
-
-# Copy go mod and sum files
-COPY go.mod go.sum ./
-
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
-RUN go mod download
-
-# Copy the source code into the container
-COPY . .
-
-# Build the Go app
-RUN go build -o main .
-
-# Start a new stage from scratch
-FROM debian:bullseye-slim
-
-# Copy the Pre-built binary file from the previous stage
-COPY --from=builder /app/main /app/main
-
-# Expose port 8080 to the outside world
-EXPOSE 8080
-
-# Command to run the executable
-ENTRYPOINT ["/app/main"]
-```
-
-1.2. Create a Dockerfile for Development
-For development with live reloading, create a Dockerfile.dev in the root of your project:
+Go (for local development and testing)
+1. Containerizing the Go Application
+   
+1.1. Create a Dockerfile
+In the root of your project directory, 
+create a Dockerfile with the following content:
 
 # Use the official Golang image as a parent image
-FROM golang:1.20 AS dev
+FROM golang:1.23-alpine
 
 # Set the Current Working Directory inside the container
-WORKDIR /app
-
-# Copy go mod and sum files
-COPY go.mod go.sum ./
-
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
-RUN go mod download
-
-# Copy the source code into the container
-COPY . .
+WORKDIR /usr/src/app
 
 # Install Air for live reloading
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
-# Start Air
-CMD ["air"]
+# Copy the application code into the container
+COPY . .
 
-2. Set Up Air for Live Reloading
-  
-2.1. Install Air Locally To use Air for live reloading, you need to install it:
+# Ensure Go modules are tidy
+RUN go mod tidy
 
-go install github.com/cosmtrek/air@latest
-
-or by sh
-
-# binary will be $(go env GOPATH)/bin/air
-curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-
-# or install it into ./bin/
-curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s
-
-air -v
-
-2.2. Create Air Configuration File
-
-On the command line type in the command air init to initialize air.toml file
-
-3. Configure Docker Compose To manage your development environment with Docker Compose, 
+1.2. Create a Docker Compose File
+To manage your development environment with Docker Compose, 
 create a docker-compose.yml file in the root of your project:
 
-"services:
+version: '3.8'
+
+services:
 auth-service:
-build:
-context: .
-dockerfile: Dockerfile.dev
-volumes:
-- .:/app
+build: .
+env_file:
+- .env
 ports:
 - "8080:8080"
-command: air"
+volumes:
+- .:/usr/src/app
+command: air cmd/auth-service/main.go -b 0.0.0.0
 
-4. Running the Application
-   4.1. For Development
-   To run the application with live reloading, use Docker Compose:
+db:
+image: postgres:16.3-alpine
+environment:
+- POSTGRES_USER=${DB_USER}
+- POSTGRES_PASSWORD=${DB_PASSWORD}
+- POSTGRES_DB=${DB_NAME}
+ports:
+- "5432:5432"
+volumes:
+- postgres-db:/var/lib/postgresql/data
 
-"docker-compose up --build"
+volumes:
+postgres-db:
 
-4.2. For Production
-To build and run the application for production, follow these steps:
+2. Setting Up Air for Live Reloading
+   
+2.1. Install Air Locally
+To use Air for live reloading, install it with:
+
+go install github.com/air-verse/air@latest
+
+Alternatively, install it via script:
+
+# Install Air to the default GOPATH bin directory
+curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+
+# Or install it into ./bin/
+curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s
+
+Verify the installation:
+
+2.2. Create Air Configuration File
+Ensure you have an air.toml file in the root of your project with the following configuration:
+
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+args_bin = []
+bin = "./tmp/main"
+cmd = "go build -o ./tmp/main ./cmd/auth-service"
+delay = 1000
+exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+exclude_file = []
+exclude_regex = ["_test.go"]
+exclude_unchanged = false
+follow_symlink = false
+full_bin = ""
+include_dir = []
+include_ext = ["go", "tpl", "tmpl", "html"]
+include_file = []
+kill_delay = "0s"
+log = "build-errors.log"
+poll = false
+poll_interval = 0
+post_cmd = []
+pre_cmd = []
+rerun = false
+rerun_delay = 500
+send_interrupt = false
+stop_on_error = false
+
+[color]
+app = ""
+build = "yellow"
+main = "magenta"
+runner = "green"
+watcher = "cyan"
+
+[log]
+main_only = false
+time = false
+
+[misc]
+clean_on_exit = false
+
+[proxy]
+app_port = 0
+enabled = false
+proxy_port = 0
+
+[screen]
+clear_on_rebuild = false
+keep_scroll = true
+
+3. Running the Application
+   
+3.1. For Development
+To run the application with live reloading, use Docker Compose:
+
+docker-compose up --build
+
+3.2. For Production
+To build and run the application for production:
 
 Build the production image:
 
-"docker build -t auth-service ."
+docker build -t auth-service .
 
 Run the container:
 
-"docker run -p 8080:8080 auth-service"
+docker run -p 8080:8080 auth-service
 
+4. Connecting to PostgreSQL Database
+   This section covers how to connect your Go application to a PostgreSQL database using GORM, 
+   with configuration managed through a .env file.
+
+4.1. Create .env File
+Create a .env file in the root of your project with the following content:
+
+DATABASE_URL=postgres://engineer25:thewordistheword@db:5432/authdb?sslmode=disable
+DB_USER=engineer25
+DB_PASSWORD=thewordistheword
+DB_NAME=authdb
+
+4.2. Update Go Application to Use GORM
+Ensure that your Go application uses GORM to connect to the PostgreSQL database. 
+Here's an example of how to initialize GORM in your Go application:
+
+database/database.go
+
+package database
+
+import (
+"auth-service/models"
+"fmt"
+"gorm.io/driver/postgres"
+"gorm.io/gorm"
+"gorm.io/gorm/logger"
+"log"
+"os"
+)
+
+type Dbinstance struct {
+Db *gorm.DB
+}
+
+var DB Dbinstance
+
+func ConnectDb() {
+dsn := fmt.Sprintf("host=db user=%s password=%s dbname=%s port=5432 sslmode=disable",
+os.Getenv("DB_USER"),
+os.Getenv("DB_PASSWORD"),
+os.Getenv("DB_NAME"),
+)
+db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+Logger: logger.Default.LogMode(logger.Info),
+})
+
+	if err != nil {
+		log.Fatal("Failed to connect to database. \n", err)
+		os.Exit(2)
+	}
+
+	log.Println("connected")
+	db.Logger = logger.Default.LogMode(logger.Info)
+
+	log.Println("running migrations")
+	err = db.AutoMigrate(&models.User{})
+	if err != nil {
+		return
+	}
+
+	DB = Dbinstance{Db: db}
+}
+
+Update your main.go to initialize the database:
+
+cmd/auth-service/main.go
+
+package main
+
+import (
+"auth-service/database"
+"github.com/gofiber/fiber/v2"
+"log"
+)
+
+func main() {
+database.ConnectDb()
+// Initialize a new Fiber app
+app := fiber.New()
+
+    setupRoutes(app)
+
+    log.Fatal(app.Listen(":8080"))
+}
 
 Contribution
-
 Feel free to open issues or submit pull requests if you have any suggestions or improvements!
-
-
-
