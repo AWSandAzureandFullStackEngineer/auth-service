@@ -2,6 +2,7 @@ package database
 
 import (
 	"auth-service/models"
+	"auth-service/repository"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -11,7 +12,8 @@ import (
 )
 
 type Dbinstance struct {
-	Db *gorm.DB
+	Db             *gorm.DB
+	UserRepository repository.UserRepository
 }
 
 var DB Dbinstance
@@ -37,8 +39,12 @@ func ConnectDb() {
 	log.Println("running migrations")
 	err = db.AutoMigrate(&models.User{})
 	if err != nil {
-		return
+		log.Fatal("Failed to run migrations.\n", err)
+		os.Exit(2)
 	}
 
-	DB = Dbinstance{Db: db}
+	DB = Dbinstance{
+		Db:             db,
+		UserRepository: repository.NewUserRepository(db),
+	}
 }
