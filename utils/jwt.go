@@ -1,19 +1,19 @@
-// utils/jwt.go
 package utils
 
 import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
+	"os"
 	"time"
 )
 
-var secretKey = []byte("your_secret_key")
+var secretKey = []byte(os.Getenv("SECRET_KEY"))
 
 // GenerateToken generates a JWT token for a user
 func GenerateToken(userID string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 2).Unix(),
+		"exp":     time.Now().Add(24 * time.Hour).Unix(), // Set expiration to 1 day
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(secretKey)

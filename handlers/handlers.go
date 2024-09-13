@@ -3,52 +3,40 @@ package handlers
 import (
 	"auth-service/models"
 	"auth-service/service"
-	"auth-service/utils"
+	_ "auth-service/utils"
 	"github.com/gofiber/fiber/v2"
-	"log"
+	"net/http"
 )
 
+// Register handles user registration
 func Register(c *fiber.Ctx, userService service.UserService) error {
-	user := new(models.User)
-	if err := c.BodyParser(user); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+	var user models.User
+	if err := c.BodyParser(&user); err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-
-	// Hash the password before saving
-	hashedPassword, err := HashPassword(user.Password)
-	if err != nil {
-		log.Println("Error hashing password:", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to hash password",
-		})
+	if err := userService.RegisterUser(&user); err != nil {
+		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
-	user.Password = hashedPassword
-
-	if err := userService.RegisterUser(user); err != nil {
-		log.Println("Error registering user:", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to register user",
-		})
-	}
-
-	// Generate a JWT token
-	token, err := utils.GenerateToken(user.Username)
-	if err != nil {
-		log.Println("Error generating token:", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to generate token",
-		})
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"token": token,
-	})
+	return c.SendStatus(http.StatusCreated)
 }
 
-// HashPassword hashes the user's password
-func HashPassword(password string) (string, error) {
-	// Implement password hashing here
-	return password, nil // Placeholder: Replace with actual hash
+// Login handles user login
+func Login(c *fiber.Ctx, userService service.UserService) error {
+	var request struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+
+	token, err := userService.LoginUser(request.Username, request.Password)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).SendString(err.Error())
+	}
+
+	return c.JSON(fiber.Map{
+		"token": token,
+	})
 }

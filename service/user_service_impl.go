@@ -3,13 +3,13 @@ package service
 import (
 	"auth-service/models"
 	"auth-service/repository"
+	"auth-service/utils"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"log"
 )
 
-// userService implements the UserService interface
 type userService struct {
 	userRepo repository.UserRepository
 }
@@ -40,4 +40,27 @@ func (s *userService) RegisterUser(user *models.User) error {
 
 	// Save the new user
 	return s.userRepo.RegisterUser(user)
+}
+
+// LoginUser handles user login logic
+func (s *userService) LoginUser(username, password string) (string, error) {
+	// Find user by username
+	user := &models.User{}
+	if err := s.userRepo.FindByUsernameOrEmail(username, "", user); err != nil {
+		return "", err
+	}
+
+	// Check password
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return "", fmt.Errorf("invalid credentials")
+	}
+
+	// Generate JWT token
+	token, err := utils.GenerateToken(fmt.Sprintf("%d", user.ID))
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
